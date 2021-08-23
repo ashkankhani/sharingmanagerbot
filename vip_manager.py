@@ -14,12 +14,17 @@ from telegram.inline.inlinekeyboardmarkup import InlineKeyboardMarkup
 
 
 
+
 TOKEN = '1939997594:AAHesGv-8IIZpQaHaivY1QewnE36V8Eo0ag'
 BOT_MAKER = 800882871
 updater = Updater(TOKEN)
 iran = timezone('Asia/Tehran')
 
+
+
 TAMDID = range(1)
+
+
 
 
 jobstores = {
@@ -48,12 +53,25 @@ def get_user_info_db(user_id):
     return res
 
 def reminder(user_id):
-    updater.bot.send_message(chat_id = user_id,text = '''با سلام
-تنها یک روز به پایان اعتبار حساب vip شما باقی مانده است...
-برای تمدید میتوانید به این آیدی پیام داده و پیگیری های لازم را انجام دهید:
-@Lesson_perfect
-''')
+    try:
+        updater.bot.send_message(chat_id = user_id,text = '''با سلام
+    تنها یک روز به پایان اعتبار حساب vip شما باقی مانده است...
+    برای تمدید میتوانید به این آیدی پیام داده و پیگیری های لازم را انجام دهید:
+    @Lesson_perfect
+    ''')
+    except:
+        updater.bot.send_message(chat_id = BOT_MAKER,text = 'در ارسال پیام به یک عضو وی آی پی خطا رخ داد!')
+
     first_name , last_name , user_name = get_user_info_db(user_id)
+    updater.bot.send_message(chat_id = BOT_MAKER,text = f'''ادمین عزیز سلام
+اشتراک فردی با این مشخصات تا 24 ساعت آینده ابطال میگردد:
+نام : {first_name}
+نام خانوادگی : {last_name}
+یوزرنیم : {user_name}
+فرد مورد نظر نیز توسط پیامی آگاه سازی شد
+''')
+    
+
 
 
 
@@ -71,34 +89,58 @@ def have_charge(user_id):
         return True
     return False
 
+def get_database_date(user_id):
+    connection =  sqlite3.connect('vip_manager.sqlite')
+    cursor = connection.cursor()
+    cursor.execute(f'''select year , month , day , hour , minute , second
+    from apscheduler_jobs
+    where user_id = {user_id}
+    ''')
+    res =  cursor.fetchone()
+    return res
+
+
 def recharge(user_id,days):
     delta_time = datetime.timedelta(days = days - 1)
     seconds = delta_time.total_seconds()
+    before_date_jalali = get_database_date(user_id)
+    year , month , day , hour , minute , second = before_date_jalali
+    after_date_jalali = jdatetime.datetime(year , month , day , hour , minute) + jdatetime.timedelta(days=days)
+    year , month , day , hour , minute , second = after_date_jalali.year , after_date_jalali.month , after_date_jalali.day , after_date_jalali.hour , after_date_jalali.minute , after_date_jalali.second
     connection = sqlite3.connect('vip_manager.sqlite')
     cursor = connection.cursor()
     cursor.execute(f'''update apscheduler_jobs
-    set next_run_time = next_run_time + {seconds}
+    set next_run_time = next_run_time + {seconds} , year = {year}, month = {month} , day = {day} , hour = {hour} , minute = {minute} , second = {second}
     where user_id = {user_id}
     ''')
     connection.commit()
     connection.close()
 
 
-def submit_charge_user_id(job_code,user_id):
+def submit_charge_user_id_date(job_code,user_id,after_date_jalali_tup):
+    year , month , day , hour , minute , second = after_date_jalali_tup
     connection = sqlite3.connect('vip_manager.sqlite')
     cursor = connection.cursor()
     cursor.execute((f'''update apscheduler_jobs
-    set user_id = {user_id}
+    set user_id = {user_id} , year = {year}, month = {month} , day = {day} , hour = {hour} , minute = {minute} , second = {second}
     where id = '{job_code}'
     '''))
     connection.commit()
+    connection.close()
+
+
+
 
 def charge (user_id,days):
     now_date = datetime.datetime.now(iran)
-    after_date = now_date + datetime.timedelta(minutes=1) #تست
+    after_date = now_date + datetime.timedelta(days=days - 1) 
+    after_date_jalali = jdatetime.datetime.now(iran) + jdatetime.timedelta(days = days)
+    after_date_jalali_tup = (after_date_jalali.year , after_date_jalali.month , after_date_jalali.day , after_date_jalali.hour , after_date_jalali.minute , after_date_jalali.second)
     remind = scheduler.add_job(reminder, 'date', run_date=after_date, args=[user_id])
-    jobe_code = remind.id
-    submit_charge_user_id(jobe_code,user_id)
+    job_code = remind.id
+    submit_charge_user_id_date(job_code,user_id,after_date_jalali_tup)
+
+    
 
     
 
@@ -114,7 +156,6 @@ def tamdid_manager(update : Update , context : CallbackContext):
 
 
 def user_in_db(user_id):
-    print(user_id)
     connection = sqlite3.connect('vip_manager.sqlite')
     cursor = connection.cursor()
     cursor.execute(f'''select id
