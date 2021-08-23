@@ -1,4 +1,5 @@
 import sqlite3
+from sqlite3.dbapi2 import connect
 import jdatetime
 from pytz import timezone
 import datetime
@@ -17,6 +18,7 @@ from telegram.inline.inlinekeyboardmarkup import InlineKeyboardMarkup
 
 TOKEN = '1939997594:AAHesGv-8IIZpQaHaivY1QewnE36V8Eo0ag'
 BOT_MAKER = 800882871
+ADMIN_ID = 1148289066
 updater = Updater(TOKEN)
 iran = timezone('Asia/Tehran')
 
@@ -55,19 +57,19 @@ def get_user_info_db(user_id):
 def reminder(user_id):
     try:
         updater.bot.send_message(chat_id = user_id,text = '''با سلام
-    تنها یک روز به پایان اعتبار حساب vip شما باقی مانده است...
-    برای تمدید میتوانید به این آیدی پیام داده و پیگیری های لازم را انجام دهید:
-    @Lesson_perfect
-    ''')
+تنها یک روز به پایان اعتبار حساب vip شما باقی مانده است...
+برای تمدید میتوانید به این آیدی پیام داده و پیگیری های لازم را انجام دهید:
+@Lesson_perfect
+''')
     except:
-        updater.bot.send_message(chat_id = BOT_MAKER,text = 'در ارسال پیام به یک عضو وی آی پی خطا رخ داد!')
+        updater.bot.send_message(chat_id = ADMIN_ID,text = 'در ارسال پیام به یک عضو وی آی پی خطا رخ داد!')
 
     first_name , last_name , user_name = get_user_info_db(user_id)
-    updater.bot.send_message(chat_id = BOT_MAKER,text = f'''ادمین عزیز سلام
+    updater.bot.send_message(chat_id = ADMIN_ID,text = f'''ادمین عزیز سلام
 اشتراک فردی با این مشخصات تا 24 ساعت آینده ابطال میگردد:
 نام : {first_name}
 نام خانوادگی : {last_name}
-یوزرنیم : {user_name}
+یوزرنیم : @{user_name}
 فرد مورد نظر نیز توسط پیامی آگاه سازی شد
 ''')
     
@@ -101,7 +103,8 @@ def get_database_date(user_id):
 
 
 def recharge(user_id,days):
-    delta_time = datetime.timedelta(days = days - 1)
+    #delta_time = datetime.timedelta(days = days - 1) asli
+    delta_time = datetime.timedelta(seconds = days - 1)
     seconds = delta_time.total_seconds()
     before_date_jalali = get_database_date(user_id)
     year , month , day , hour , minute , second = before_date_jalali
@@ -115,6 +118,7 @@ def recharge(user_id,days):
     ''')
     connection.commit()
     connection.close()
+    return after_date_jalali
 
 
 def submit_charge_user_id_date(job_code,user_id,after_date_jalali_tup):
@@ -128,17 +132,23 @@ def submit_charge_user_id_date(job_code,user_id,after_date_jalali_tup):
     connection.commit()
     connection.close()
 
+def after_jalali_date(days):
+    after_date_jalali = jdatetime.datetime.now(iran) + jdatetime.timedelta(days = days)
+    return after_date_jalali
+
 
 
 
 def charge (user_id,days):
     now_date = datetime.datetime.now(iran)
-    after_date = now_date + datetime.timedelta(days=days - 1) 
-    after_date_jalali = jdatetime.datetime.now(iran) + jdatetime.timedelta(days = days)
+    #after_date = now_date + datetime.timedelta(days=days - 1) asli
+    after_date = now_date + datetime.timedelta(seconds= days - 1)
+    after_date_jalali = after_jalali_date(days)
     after_date_jalali_tup = (after_date_jalali.year , after_date_jalali.month , after_date_jalali.day , after_date_jalali.hour , after_date_jalali.minute , after_date_jalali.second)
-    remind = scheduler.add_job(reminder, 'date', run_date=after_date, args=[user_id])
+    remind = scheduler.add_job(reminder, 'date', run_date=after_date, args=[user_id] , misfire_grace_time=365 * 24 * 60 * 60)
     job_code = remind.id
     submit_charge_user_id_date(job_code,user_id,after_date_jalali_tup)
+    return after_date_jalali
 
     
 
@@ -150,9 +160,17 @@ def tamdid_manager(update : Update , context : CallbackContext):
     user_id = data_list[0]
     days = int(data_list[1])
     if(have_charge(user_id)):
-        recharge(user_id,days)
+        date = recharge(user_id,days)
     else:
-        charge(user_id , days)
+        date = charge(user_id , days)
+
+    str_date = str(date)
+    context.bot.send_message(text = f'''حق اشراک فرد مورد نظر با آیدی : {user_id}
+تا تاریخ:
+{str_date}
+با موفقیت تمدید شد!
+''',chat_id = ADMIN_ID)
+
 
 
 def user_in_db(user_id):
@@ -215,7 +233,7 @@ def tayid(update:Update , context:CallbackContext):
         update.message.reply_text(text = f'''لطفا زمان تمدید را برای فرد مورد نظر تعیین کنید:
 نام : {first_name}
 نام خانوادگی : {last_name}
-یوزرنیم : {user_name}
+یوزرنیم : @{user_name}
 آیدی عددی : {user_id}
 همچنین با دستور /cancel میتوانید این پروسه را لغو کنید''' , reply_markup=inline_keyboard_markup)
     else:
