@@ -37,8 +37,26 @@ job_defaults = {
 scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors, job_defaults=job_defaults)
 scheduler.start()
 
-def test():
-    pass
+def get_user_info_db(user_id):
+    connection = sqlite3.connect('vip_manager.sqlite')
+    cursor = connection.cursor()
+    cursor.execute(f'''select first_name , last_name , user_name
+    from users_info
+    where user_id = {user_id}
+    ''')
+    res = cursor.fetchone()
+    return res
+
+def reminder(user_id):
+    updater.bot.send_message(chat_id = user_id,text = '''با سلام
+تنها یک روز به پایان اعتبار حساب vip شما باقی مانده است...
+برای تمدید میتوانید به این آیدی پیام داده و پیگیری های لازم را انجام دهید:
+@Lesson_perfect
+''')
+    first_name , last_name , user_name = get_user_info_db(user_id)
+
+
+
 
 
 def have_charge(user_id):
@@ -53,8 +71,36 @@ def have_charge(user_id):
         return True
     return False
 
-def renew(user_id,days):
-    pass
+def recharge(user_id,days):
+    delta_time = datetime.timedelta(days = days - 1)
+    seconds = delta_time.total_seconds()
+    connection = sqlite3.connect('vip_manager.sqlite')
+    cursor = connection.cursor()
+    cursor.execute(f'''update apscheduler_jobs
+    set next_run_time = next_run_time + {seconds}
+    where user_id = {user_id}
+    ''')
+    connection.commit()
+    connection.close()
+
+
+def submit_charge_user_id(job_code,user_id):
+    connection = sqlite3.connect('vip_manager.sqlite')
+    cursor = connection.cursor()
+    cursor.execute((f'''update apscheduler_jobs
+    set user_id = {user_id}
+    where id = '{job_code}'
+    '''))
+    connection.commit()
+
+def charge (user_id,days):
+    now_date = datetime.datetime.now(iran)
+    after_date = now_date + datetime.timedelta(minutes=1) #تست
+    remind = scheduler.add_job(reminder, 'date', run_date=after_date, args=[user_id])
+    jobe_code = remind.id
+    submit_charge_user_id(jobe_code,user_id)
+
+    
 
 def tamdid_manager(update : Update , context : CallbackContext):
     query = update.callback_query
@@ -62,7 +108,9 @@ def tamdid_manager(update : Update , context : CallbackContext):
     user_id = data_list[0]
     days = int(data_list[1])
     if(have_charge(user_id)):
-        renew(user_id,days)
+        recharge(user_id,days)
+    else:
+        charge(user_id , days)
 
 
 def user_in_db(user_id):
