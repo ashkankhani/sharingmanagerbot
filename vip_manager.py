@@ -41,11 +41,29 @@ def test():
     pass
 
 
+def have_charge(user_id):
+    connection = sqlite3.connect('vip_manager.sqlite')
+    cursor = connection.cursor()
+    cursor.execute(f'''select id
+    from apscheduler_jobs
+    where user_id = {user_id}
+    ''')
+    res = cursor.fetchone()
+    if(res):
+        return True
+    return False
+
+def renew(user_id,days):
+    pass
+
 def tamdid_manager(update : Update , context : CallbackContext):
     query = update.callback_query
     data_list = (query.data.split(','))[1:]
     user_id = data_list[0]
     days = int(data_list[1])
+    if(have_charge(user_id)):
+        renew(user_id,days)
+
 
 def user_in_db(user_id):
     print(user_id)
@@ -101,7 +119,7 @@ def tayid(update:Update , context:CallbackContext):
 
     
     inline_keyboard_button = [
-        [InlineKeyboardButton(text = 'یک هفته',callback_data=f't,{id},7') , InlineKeyboardButton(text = 'یک ماه',callback_data=f't,{id},30')]
+        [InlineKeyboardButton(text = 'یک هفته',callback_data=f't,{user_id},7') , InlineKeyboardButton(text = 'یک ماه',callback_data=f't,{user_id},30')]
     ]
     inline_keyboard_markup = InlineKeyboardMarkup(inline_keyboard=inline_keyboard_button)
     if(message):
