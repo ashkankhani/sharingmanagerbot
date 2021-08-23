@@ -18,6 +18,7 @@ from telegram.inline.inlinekeyboardmarkup import InlineKeyboardMarkup
 
 TOKEN = '1939997594:AAHesGv-8IIZpQaHaivY1QewnE36V8Eo0ag'
 BOT_MAKER = 800882871
+#ADMIN_ID = 1148289066
 ADMIN_ID = 1148289066
 updater = Updater(TOKEN)
 iran = timezone('Asia/Tehran')
@@ -243,7 +244,7 @@ def tayid(update:Update , context:CallbackContext):
 
 
 
-    return TAMDID
+    return ConversationHandler.END
 
 
 
@@ -251,7 +252,6 @@ def tayid(update:Update , context:CallbackContext):
 
 def cancel (update : Update , context : CallbackContext):
     update.message.reply_text('شما با موفقیت از محیط تمدید vip خارج شدید!')
-    return ConversationHandler.END
 
 
 
@@ -270,7 +270,7 @@ def main():
     tamdid_manager_handler = CallbackQueryHandler(tamdid_manager ,pattern='^t,\d*,\d+$')
 
     forward_from_vip_user_handler = ConversationHandler(
-        entry_points = [MessageHandler(Filters.forwarded , tayid)],
+        entry_points = [MessageHandler(Filters.chat(ADMIN_ID) & Filters.forwarded , tayid)],
         states= {
 
             #TAMDID : [CallbackQueryHandler(tamdid_manager , pattern='^t,\d*,\d+$')]
