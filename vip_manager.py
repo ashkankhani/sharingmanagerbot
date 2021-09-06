@@ -1,13 +1,11 @@
-from logging import Filter
 import sqlite3
-from sqlite3.dbapi2 import connect
 import jdatetime
 from pytz import timezone
 import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
-from telegram.ext import Updater,MessageHandler,ConversationHandler,CallbackContext,CommandHandler
+from telegram.ext import Updater,MessageHandler,CallbackContext
 from telegram import Update
 from telegram.ext.callbackqueryhandler import CallbackQueryHandler
 from telegram.ext.filters import Filters
@@ -67,7 +65,8 @@ def reminder(user_id):
         updater.bot.send_message(chat_id = ADMIN_ID,text = 'در ارسال پیام به یک عضو وی آی پی خطا رخ داد!')
 
     first_name , last_name , user_name , user_id = get_user_info_db(user_id)
-    updater.bot.send_message(chat_id = ADMIN_ID,text = f'''ادمین عزیز سلام
+    try:
+        updater.bot.send_message(chat_id = ADMIN_ID,text = f'''ادمین عزیز سلام
 اشتراک فردی با این مشخصات تا 24 ساعت آینده ابطال میگردد:
 نام : {first_name}
 نام خانوادگی : {last_name}
@@ -75,6 +74,8 @@ def reminder(user_id):
 آیدی عددی : {user_id}
 فرد مورد نظر نیز توسط پیامی آگاه سازی شد
 ''')
+    except:
+        print('cant send message to admin!')
     
 
 
@@ -104,8 +105,7 @@ def get_database_date(user_id):
 
 
 def recharge(user_id,days):
-    delta_time = datetime.timedelta(seconds = days - 1)
-    #delta_time = datetime.timedelta(seconds = days - 1)
+    delta_time = datetime.timedelta(seconds = days)
     seconds = delta_time.total_seconds()
     before_date_jalali = get_database_date(user_id)
     year , month , day , hour , minute , second = before_date_jalali
@@ -332,11 +332,7 @@ if(__name__ == '__main__'):
     main()
 
 
-#connection = sqlite3.connect('jobs.sqlite')
-#cursor = connection.cursor()
-#cursor.execute(f'''update apscheduler_jobs
-#set next_run_time = next_run_time + {hey}''')
-#connection.commit()
+
 
 
 
