@@ -1,3 +1,4 @@
+from logging import Filter
 import sqlite3
 from sqlite3.dbapi2 import connect
 import jdatetime
@@ -48,7 +49,7 @@ scheduler.start()
 def get_user_info_db(user_id):
     connection = sqlite3.connect('vip_manager.sqlite')
     cursor = connection.cursor()
-    cursor.execute(f'''select first_name , last_name , user_name
+    cursor.execute(f'''select first_name , last_name , user_name , user_id
     from users_info
     where user_id = {user_id}
     ''')
@@ -65,17 +66,16 @@ def reminder(user_id):
     except:
         updater.bot.send_message(chat_id = ADMIN_ID,text = 'در ارسال پیام به یک عضو وی آی پی خطا رخ داد!')
 
-    first_name , last_name , user_name = get_user_info_db(user_id)
+    first_name , last_name , user_name , user_id = get_user_info_db(user_id)
     updater.bot.send_message(chat_id = ADMIN_ID,text = f'''ادمین عزیز سلام
 اشتراک فردی با این مشخصات تا 24 ساعت آینده ابطال میگردد:
 نام : {first_name}
 نام خانوادگی : {last_name}
 یوزرنیم : @{user_name}
+آیدی عددی : {user_id}
 فرد مورد نظر نیز توسط پیامی آگاه سازی شد
 ''')
     
-
-
 
 
 
@@ -104,7 +104,7 @@ def get_database_date(user_id):
 
 
 def recharge(user_id,days):
-    delta_time = datetime.timedelta(days = days - 1)
+    delta_time = datetime.timedelta(seconds = days - 1)
     #delta_time = datetime.timedelta(seconds = days - 1)
     seconds = delta_time.total_seconds()
     before_date_jalali = get_database_date(user_id)
@@ -142,7 +142,7 @@ def after_jalali_date(days):
 
 def charge (user_id,days):
     now_date = datetime.datetime.now(iran)
-    after_date = now_date + datetime.timedelta(days=days - 1) 
+    after_date = now_date + datetime.timedelta(seconds=days - 1) 
     after_date_jalali = after_jalali_date(days)
     after_date_jalali_tup = (after_date_jalali.year , after_date_jalali.month , after_date_jalali.day , after_date_jalali.hour , after_date_jalali.minute , after_date_jalali.second)
     remind = scheduler.add_job(reminder, 'date', run_date=after_date, args=[user_id] , misfire_grace_time=365 * 24 * 60 * 60,timezone = iran)
@@ -270,13 +270,27 @@ def help (update : Update , context : CallbackContext):
 برای کار کردن با این ربات لازمه دو نکته رو رعایت کنین:
 1.در جهت اد کردن فردی به لیست لازمه که ازش بخواین قفل فورواردشو باز کنه
 2.از کاربر مورد نظر بخواین که ربات رو استارت کنه که رسید به ایشون هم ارسال بشه
+3.با فوروارد کردن پيامي از کاربر مورد نظر به ربات و مشخص کردن دوره آن,ميتوايند اشتراک فرد مورد نظر را تمديد کنيد!
 ''')
 
 
 
 
+def start(update : Update , context : CallbackContext):
+    update.message.reply_text('''دو نوع تعرفه برای تبلیغ در گروه داریم:
 
-#he = scheduler.add_job(test , trigger='date' ,run_date='2021-8-23 11:42:05',timezone = iran , misfire_grace_time = 30 * 24 * 3600)
+✅ هفتگی 👈🏻 ۳۰ هزار تومان
+
+✅ ماهانه 👈🏻 ۷۵ هزار تومان
+
+▫️محدودیت برداشته میشه براتون
+▫️با خرید حق اشتراک امکان تبلیغ و درج آگهی توانمندی بدون محدودیت براتون ایجاد میشه. 
+▫️از سایر پیام‌های تبلیغاتی جلوگیری میشه تا کسانی که حق اشتراک میخرن بهتر دیده بشن
+▫️فقط خواهشا به صورت رگباری و مزاحم گونه تبلیغ نکنید. مثلا هر ۱۵ دقیقه یک پیام برای تبلیغ کارتون بزارید🌹
+
+برای اقدام به خرید اشتراک مورد نظر,با آیدی زیر در ارتباط باشید:
+@Lesson_perfect
+''')
 
 
 
@@ -288,13 +302,16 @@ def main():
 
     tamdid_manager_handler = CallbackQueryHandler(tamdid_manager ,pattern='^t,\d*,\d+$')
 
-    start_handler = MessageHandler(Filters.all , help)
+    help_handler = MessageHandler(Filters.chat(ADMIN_ID), help)
+    start_handler = MessageHandler(Filters.all, start)
+
 
     forward_from_vip_user_handler = MessageHandler(Filters.chat(ADMIN_ID) & Filters.forwarded , tayid)
 
 
     dispatcher.add_handler(forward_from_vip_user_handler)
     dispatcher.add_handler(tamdid_manager_handler)
+    dispatcher.add_handler(help_handler)
     dispatcher.add_handler(start_handler)
 
 
