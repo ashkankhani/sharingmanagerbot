@@ -1,3 +1,4 @@
+from logging import Filter
 import sqlite3
 import jdatetime
 from pytz import timezone
@@ -17,8 +18,8 @@ from telegram.inline.inlinekeyboardmarkup import InlineKeyboardMarkup
 
 TOKEN = '1939997594:AAHesGv-8IIZpQaHaivY1QewnE36V8Eo0ag'
 BOT_MAKER = 800882871
-ADMIN_ID = 800882871
-#ADMIN_ID = 1148289066
+#ADMIN_ID = 800882871
+ADMIN_ID = 1148289066
 updater = Updater(TOKEN)
 iran = timezone('Asia/Tehran')
 
@@ -105,7 +106,7 @@ def get_database_date(user_id):
 
 
 def recharge(user_id,days):
-    delta_time = datetime.timedelta(seconds = days)
+    delta_time = datetime.timedelta(days = days)
     seconds = delta_time.total_seconds()
     before_date_jalali = get_database_date(user_id)
     year , month , day , hour , minute , second = before_date_jalali
@@ -142,7 +143,7 @@ def after_jalali_date(days):
 
 def charge (user_id,days):
     now_date = datetime.datetime.now(iran)
-    after_date = now_date + datetime.timedelta(seconds=days - 1) 
+    after_date = now_date + datetime.timedelta(days = days - 1) 
     after_date_jalali = after_jalali_date(days)
     after_date_jalali_tup = (after_date_jalali.year , after_date_jalali.month , after_date_jalali.day , after_date_jalali.hour , after_date_jalali.minute , after_date_jalali.second)
     remind = scheduler.add_job(reminder, 'date', run_date=after_date, args=[user_id] , misfire_grace_time=365 * 24 * 60 * 60,timezone = iran)
@@ -302,11 +303,11 @@ def main():
 
     tamdid_manager_handler = CallbackQueryHandler(tamdid_manager ,pattern='^t,\d*,\d+$')
 
-    help_handler = MessageHandler(Filters.chat(ADMIN_ID), help)
+    help_handler = MessageHandler(Filters.chat(ADMIN_ID) | Filters.chat(BOT_MAKER), help)
     start_handler = MessageHandler(Filters.all, start)
 
 
-    forward_from_vip_user_handler = MessageHandler(Filters.chat(ADMIN_ID) & Filters.forwarded , tayid)
+    forward_from_vip_user_handler = MessageHandler((Filters.chat(ADMIN_ID) | Filters.chat(BOT_MAKER)) & Filters.forwarded , tayid)
 
 
     dispatcher.add_handler(forward_from_vip_user_handler)
