@@ -18,8 +18,8 @@ from telegram.inline.inlinekeyboardmarkup import InlineKeyboardMarkup
 
 TOKEN = '1939997594:AAHesGv-8IIZpQaHaivY1QewnE36V8Eo0ag'
 BOT_MAKER = 800882871
+ADMIN_ID = 800882871
 #ADMIN_ID = 1148289066
-ADMIN_ID = 1148289066
 updater = Updater(TOKEN)
 iran = timezone('Asia/Tehran')
 
@@ -104,12 +104,12 @@ def get_database_date(user_id):
 
 
 def recharge(user_id,days):
-    #delta_time = datetime.timedelta(days = days - 1) asli
-    delta_time = datetime.timedelta(seconds = days - 1)
+    delta_time = datetime.timedelta(days = days - 1)
+    #delta_time = datetime.timedelta(seconds = days - 1)
     seconds = delta_time.total_seconds()
     before_date_jalali = get_database_date(user_id)
     year , month , day , hour , minute , second = before_date_jalali
-    after_date_jalali = jdatetime.datetime(year , month , day , hour , minute) + jdatetime.timedelta(days=days)
+    after_date_jalali = jdatetime.datetime(year , month , day , hour , minute , second) + jdatetime.timedelta(days=days)
     year , month , day , hour , minute , second = after_date_jalali.year , after_date_jalali.month , after_date_jalali.day , after_date_jalali.hour , after_date_jalali.minute , after_date_jalali.second
     connection = sqlite3.connect('vip_manager.sqlite')
     cursor = connection.cursor()
@@ -142,11 +142,10 @@ def after_jalali_date(days):
 
 def charge (user_id,days):
     now_date = datetime.datetime.now(iran)
-    #after_date = now_date + datetime.timedelta(days=days - 1) asli
-    after_date = now_date + datetime.timedelta(seconds= days - 1)
+    after_date = now_date + datetime.timedelta(days=days - 1) 
     after_date_jalali = after_jalali_date(days)
     after_date_jalali_tup = (after_date_jalali.year , after_date_jalali.month , after_date_jalali.day , after_date_jalali.hour , after_date_jalali.minute , after_date_jalali.second)
-    remind = scheduler.add_job(reminder, 'date', run_date=after_date, args=[user_id] , misfire_grace_time=365 * 24 * 60 * 60)
+    remind = scheduler.add_job(reminder, 'date', run_date=after_date, args=[user_id] , misfire_grace_time=365 * 24 * 60 * 60,timezone = iran)
     job_code = remind.id
     submit_charge_user_id_date(job_code,user_id,after_date_jalali_tup)
     return after_date_jalali
@@ -165,12 +164,28 @@ def tamdid_manager(update : Update , context : CallbackContext):
     else:
         date = charge(user_id , days)
 
-    str_date = str(date)
+    str_date = date.strftime("14%y/%m/%d %H:%M:%S")
     context.bot.send_message(text = f'''حق اشراک فرد مورد نظر با آیدی : {user_id}
 تا تاریخ:
 {str_date}
 با موفقیت تمدید شد!
 ''',chat_id = ADMIN_ID)
+    try:
+        context.bot.send_message(text = f'''حق اشراک شما با آیدی : {user_id}
+    تا تاریخ:
+    {str_date}
+    با موفقیت تمدید شد!
+    ''',chat_id = user_id)
+    except:
+        context.bot.send_message(text = f'''در ارسال پیام تمدید به فردی با ایدی زیر,خطا روی داده است
+این خطا ممکن است ناشی از بلاک کردن و یا استارت نکردن ربات از فرد مورد نظر باشد...
+آیدی:
+{user_id}
+''',chat_id = ADMIN_ID)
+    else:
+        context.bot.send_message(text = 'پیام تمدید با موفقیت به عضو vip ارسال شد!' , chat_id = ADMIN_ID)
+
+
 
 
 
@@ -236,7 +251,7 @@ def tayid(update:Update , context:CallbackContext):
 نام خانوادگی : {last_name}
 یوزرنیم : @{user_name}
 آیدی عددی : {user_id}
-همچنین با دستور /cancel میتوانید این پروسه را لغو کنید''' , reply_markup=inline_keyboard_markup)
+''' , reply_markup=inline_keyboard_markup)
     else:
         update.message.reply_text('''احتمالا فوروارد شخص مورد نظر قفل هستش...
 بنابراین از عضو vip جدید بخواین که فورواردشو وا کنه...
@@ -244,14 +259,18 @@ def tayid(update:Update , context:CallbackContext):
 
 
 
-    return ConversationHandler.END
 
 
 
 
 
-def cancel (update : Update , context : CallbackContext):
-    update.message.reply_text('شما با موفقیت از محیط تمدید vip خارج شدید!')
+def help (update : Update , context : CallbackContext):
+    update.message.reply_text('''ادمین عزیز سلام
+به ربات خودتون خوش اومدین...
+برای کار کردن با این ربات لازمه دو نکته رو رعایت کنین:
+1.در جهت اد کردن فردی به لیست لازمه که ازش بخواین قفل فورواردشو باز کنه
+2.از کاربر مورد نظر بخواین که ربات رو استارت کنه که رسید به ایشون هم ارسال بشه
+''')
 
 
 
@@ -269,19 +288,14 @@ def main():
 
     tamdid_manager_handler = CallbackQueryHandler(tamdid_manager ,pattern='^t,\d*,\d+$')
 
-    forward_from_vip_user_handler = ConversationHandler(
-        entry_points = [MessageHandler(Filters.chat(ADMIN_ID) & Filters.forwarded , tayid)],
-        states= {
+    start_handler = MessageHandler(Filters.all , help)
 
-            #TAMDID : [CallbackQueryHandler(tamdid_manager , pattern='^t,\d*,\d+$')]
-
-        },
-        fallbacks=[CommandHandler('cancel' , cancel)]
-    )
+    forward_from_vip_user_handler = MessageHandler(Filters.chat(ADMIN_ID) & Filters.forwarded , tayid)
 
 
     dispatcher.add_handler(forward_from_vip_user_handler)
     dispatcher.add_handler(tamdid_manager_handler)
+    dispatcher.add_handler(start_handler)
 
 
 
