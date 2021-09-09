@@ -1,4 +1,3 @@
-from logging import Filter
 import sqlite3
 import jdatetime
 from pytz import timezone
@@ -16,10 +15,10 @@ from telegram.inline.inlinekeyboardmarkup import InlineKeyboardMarkup
 
 
 
-TOKEN = '1939997594:AAHesGv-8IIZpQaHaivY1QewnE36V8Eo0ag'
+TOKEN = '1958713143:AAH6V22I1PzGVtEsIkrnK1EVSf5vhQtvvWQ'
 BOT_MAKER = 800882871
 #ADMIN_ID = 800882871
-ADMIN_ID,ADMIN_ID2 = 1148289066 , 1080462734
+ADMIN_ID= 1080462734
 updater = Updater(TOKEN)
 iran = timezone('Asia/Tehran')
 
@@ -60,25 +59,15 @@ def reminder(user_id):
         updater.bot.send_message(chat_id = user_id,text = '''با سلام
 تنها یک روز به پایان اعتبار حساب vip شما باقی مانده است...
 برای تمدید میتوانید به این آیدی پیام داده و پیگیری های لازم را انجام دهید:
-@Lesson_perfect
+@freemath1971
 ''')
     except:
         updater.bot.send_message(chat_id = ADMIN_ID,text = 'در ارسال پیام به یک عضو وی آی پی خطا رخ داد!')
-        updater.bot.send_message(chat_id = ADMIN_ID2,text = 'در ارسال پیام به یک عضو وی آی پی خطا رخ داد!')
 
 
     first_name , last_name , user_name , user_id = get_user_info_db(user_id)
     try:
         updater.bot.send_message(chat_id = ADMIN_ID,text = f'''ادمین عزیز سلام
-اشتراک فردی با این مشخصات تا 24 ساعت آینده ابطال میگردد:
-نام : {first_name}
-نام خانوادگی : {last_name}
-یوزرنیم : @{user_name}
-آیدی عددی : {user_id}
-فرد مورد نظر نیز توسط پیامی آگاه سازی شد
-''')
-        
-        updater.bot.send_message(chat_id = ADMIN_ID2,text = f'''ادمین عزیز سلام
 اشتراک فردی با این مشخصات تا 24 ساعت آینده ابطال میگردد:
 نام : {first_name}
 نام خانوادگی : {last_name}
@@ -117,8 +106,7 @@ def get_database_date(user_id):
 
 
 def recharge(user_id,days):
-    #delta_time = datetime.timedelta(days = days) asli
-    delta_time = datetime.timedelta(seconds = days)
+    delta_time = datetime.timedelta(days = days)
     seconds = delta_time.total_seconds()
     before_date_jalali = get_database_date(user_id)
     year , month , day , hour , minute , second = before_date_jalali
@@ -155,8 +143,8 @@ def after_jalali_date(days):
 
 def charge (user_id,days):
     now_date = datetime.datetime.now(iran)
-    #after_date = now_date + datetime.timedelta(days = days - 1) asli
-    after_date = now_date + datetime.timedelta(seconds = days - 1) 
+    after_date = now_date + datetime.timedelta(days = days - 1) 
+    #after_date = now_date + datetime.timedelta(seconds = days - 1) 
     after_date_jalali = after_jalali_date(days)
     after_date_jalali_tup = (after_date_jalali.year , after_date_jalali.month , after_date_jalali.day , after_date_jalali.hour , after_date_jalali.minute , after_date_jalali.second)
     remind = scheduler.add_job(reminder, 'date', run_date=after_date, args=[user_id] , misfire_grace_time=365 * 24 * 60 * 60,timezone = iran)
@@ -184,11 +172,6 @@ def tamdid_manager(update : Update , context : CallbackContext):
 {str_date}
 با موفقیت تمدید شد!
 ''',chat_id = ADMIN_ID)
-    context.bot.send_message(text = f'''حق اشراک فرد مورد نظر با آیدی : {user_id}
-تا تاریخ:
-{str_date}
-با موفقیت تمدید شد!
-''',chat_id = ADMIN_ID2)
     try:
         context.bot.send_message(text = f'''حق اشراک شما با آیدی : {user_id}
     تا تاریخ:
@@ -201,17 +184,8 @@ def tamdid_manager(update : Update , context : CallbackContext):
 آیدی:
 {user_id}
 ''',chat_id = ADMIN_ID)
-        context.bot.send_message(text = f'''در ارسال پیام تمدید به فردی با ایدی زیر,خطا روی داده است
-این خطا ممکن است ناشی از بلاک کردن و یا استارت نکردن ربات از فرد مورد نظر باشد...
-آیدی:
-{user_id}
-''',chat_id = ADMIN_ID2)
     else:
         context.bot.send_message(text = 'پیام تمدید با موفقیت به عضو vip ارسال شد!' , chat_id = ADMIN_ID)
-        context.bot.send_message(text = 'پیام تمدید با موفقیت به عضو vip ارسال شد!' , chat_id = ADMIN_ID2)
-
-
-
 
 
 
@@ -303,23 +277,28 @@ def help (update : Update , context : CallbackContext):
 
 
 def start(update : Update , context : CallbackContext):
-    update.message.reply_text('''دو نوع تعرفه برای تبلیغ در گروه داریم:
+    update.message.reply_text('''سلام;به ربات مدیریت اشتراک گروه مجموعه دانشجویان خوش آمدید!
+شما میتوانید بنا به صلاحدید خود,یکی از تعرفه های اشتراک زیر را از ما خریداری کنید:
 
-✅ هفتگی 👈🏻 ۳۰ هزار تومان
+✅ هفتگی 👈🏻 ۲۰ هزار تومان
 
-✅ ماهانه 👈🏻 ۷۵ هزار تومان
+✅ ماهانه 👈🏻 ۵۰ هزار تومان
 
-▫️محدودیت برداشته میشه براتون
-▫️با خرید حق اشتراک امکان تبلیغ و درج آگهی توانمندی بدون محدودیت براتون ایجاد میشه. 
-▫️از سایر پیام‌های تبلیغاتی جلوگیری میشه تا کسانی که حق اشتراک میخرن بهتر دیده بشن
-▫️فقط خواهشا به صورت رگباری و مزاحم گونه تبلیغ نکنید. مثلا هر ۱۵ دقیقه یک پیام برای تبلیغ کارتون بزارید🌹
+از جمله قابلیت های اشتراک مجموعه,میشه به موارد زیر اشاره کرد:
+▫️رفع محدودیت
+▫️امکان تبلیغ و درج آگهی توانمندی بدون محدودیت
+▫️دیده شدن بیشتر نسبت به سایر انجام دهندگان
+
+نکته:
+۱.لطفا از درج رگباری آگهی خودداری کنید
+۲.پس از پرداخت وجه،به صورت آزمایشی و ۷ روز در گروه به اعضای vip ملحق میشوید.پس از طی گذشت این دوره ۷ روزه و در صورت نبود اعتراضی از سوی کاربران نسبت به شما،میتوانید به لیست افراد معتمد هم افزوده شوید
 
 شماره کارت جهت واریز هزینه اشتراک:
 ۶۲۷۳۸۱۱۱۵۶۶۶۱۷۱۹
 سلطانی
 
 برای اقدام به خرید اشتراک مورد نظر,با آیدی زیر در ارتباط باشید:
-@Lesson_perfect
+@freemath1971
 ''')
 
 
@@ -332,12 +311,12 @@ def main():
 
     tamdid_manager_handler = CallbackQueryHandler(tamdid_manager ,pattern='^t,\d*,\d+$')
 
-    help_handler = MessageHandler(Filters.chat(ADMIN_ID) | Filters.chat(BOT_MAKER) | Filters.chat(ADMIN_ID2), help)
+    help_handler = MessageHandler(Filters.chat(ADMIN_ID) | Filters.chat(BOT_MAKER), help)
     start_handler = MessageHandler(Filters.all, start)
 
 
 
-    forward_from_vip_user_handler = MessageHandler((Filters.chat(ADMIN_ID) | Filters.chat(BOT_MAKER) | Filters.chat(ADMIN_ID2)) & Filters.forwarded , tayid)
+    forward_from_vip_user_handler = MessageHandler((Filters.chat(ADMIN_ID) | Filters.chat(BOT_MAKER)) & Filters.forwarded , tayid)
 
 
     dispatcher.add_handler(forward_from_vip_user_handler)
